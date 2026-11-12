@@ -54,6 +54,21 @@ typedef struct { uint64_t buttons; int32_t lx, ly, rx, ry; int connected; } Runt
 void runtime_gamepad_set(const RuntimeGamepadState *s);
 void runtime_input_key(unsigned code, int down);   // Mac virtual key codes (MacNativeGames' key layout)
 void runtime_input_clear(void);
+// The mouse (window_sdl.c -> overrides_input.c -> mouse_direct.c): raw relative motion in counts (+y down) and wheel
+// notches (+ away from the player) while the window holds the mouse
+void runtime_mouse_motion(float dx, float dy);
+void runtime_mouse_wheel(float notches);
+void runtime_mouse_take(int32_t *dx, int32_t *dy);   // the counts since the last take
+uint64_t runtime_input_buttons_last(void);           // the Switch buttons of the last controller read
+int runtime_mouse_selector_active(void);            // the ability wheel or a D-pad strip takes the mouse
+// mouse_direct.c
+int totk_mouse_enabled(void);                        // the mouse camera is on (TOTK_MOUSE_SENS > 0, TOTK_MOUSE_DIRECT)
+float totk_mouse_sens(void);
+int totk_mouse_camera_active(void);                  // a camera update took mouse input in the last 150 ms
+int totk_mouse_shake(void);                          // -1 / +1: the right stick follows a mouse shake (Ultrahand)
+void totk_mouse_radial(int32_t dx, int32_t dy, float cursor[2], int32_t out[2]);
+typedef struct { float distance; int direction; uint64_t pulse_until, neutral_until; } TotkMouseRow;
+void totk_mouse_row(int32_t dx, uint64_t now, TotkMouseRow *row, int32_t out[2]);
 
 // ---- window (window_sdl.c): SDL3 on the main thread
 int window_init(void);              // 1 = window up (presentation may still be missing: logged)
@@ -65,9 +80,10 @@ typedef struct { uint64_t sampling, delta_ns; float acc[3], gyro[3], angle[3], d
 void runtime_rumble_set(unsigned side, float amp_low, float freq_low, float amp_high, float freq_high);   // side 0 left, 1 right
 int runtime_motion_read(RuntimeMotionState *out, int max);   // newest first; 0 = no motion now
 void runtime_motion_start(void);   // the game (re)started its sensor: angle and direction start over
+void runtime_motion_stop(void);    // the game stopped its sensor (the zero-rate bias may follow the controller again)
 // One sample in the Switch six-axis frame (x right, y toward the top edge, z out of the face): acceleration in G with
 // gravity (face up reads z = -1), rotation in rad/s.
-void runtime_motion_feed(const double acc_g[3], const double gyro_rad_s[3], uint64_t now_ns);
+void runtime_motion_feed(const double acc_g[3], const double gyro_rad_s[3], uint64_t now_ns, uint64_t sample_ns);   // sample_ns: the sensor's time, 0 = none
 int runtime_motion_axes(const char *spec);   // TOTK_GYRO_AXES ("-x,y,-z"): 1 set, 0 unset, -1 malformed
 void runtime_motion_deadzone_default(double deg_s);
 void runtime_motion_live(int on);   // a controller with motion attached (1) / detached (0)
@@ -75,5 +91,6 @@ void runtime_hid_feedback_stats(uint64_t *values, uint64_t *motion_reads);
 
 // ---- profiler.c: sampling CPU profiler for development (TOTK_PROF=<start s>:<seconds>[:<report path>])
 void runtime_profiler_start(void);
+void runtime_profiler_stop(void);   // the game is closing: a profile still sampling writes its report now
 uint64_t runtime_symbolize(uint64_t rip, char *out, size_t n);   // host address -> function (f_<guest> + guest symbol)
 void runtime_watch_tick(uint64_t present);   // TOTK_WATCH: arms / reports the memory write watch (watch.c)

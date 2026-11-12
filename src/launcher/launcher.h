@@ -55,7 +55,7 @@ void window_dark_title(SDL_Window *w);
 Lang system_lang();
 int logical_cpus();
 // ultratears-launcher.ini: lang ("" = the system's), dump (the folder with exefs and romfs), install (another folder
-// than the launcher's), updates ("off": no questions to GitHub), update_checked (unix time), update_* (a release
+// than the launcher's), updates ("off": no questions to GitHub), update_* (a release
 // found). Which package the game was built by is not here but with the build (data/setup.json "package").
 struct Settings {
     std::vector<std::pair<std::string, std::string>> kv;
@@ -117,3 +117,5 @@ bool ui_window_wanted();                   // false while --play has nothing to 
 bool ui_quit_wanted();                     // --play: the graphics prepared, the game to start
 bool ui_play_finish();                     // --play, after closing: the game started
 void ui_quit();                            // closing: stop the build (it resumes next time)
+bool ui_event(const SDL_Event *e);         // every event first: true when the Controls tab took it (a key being bound)
+bool ui_busy();                            // scrolling by the stick or a drag: no idle wait between frames
